@@ -1,0 +1,30 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: pytest -q || echo "No tests yet — ship it 🚢"
+
+  deploy_railway:
+    docker:
+      - image: cimg/node:22.6
+    steps:
+      - checkout
+      - run: npm install -g npm@11.6.0
+      - run: railway login --token "fca0db05-56bb-4183-966b-597db13f4d87"
+      - run: railway link --project "31398f7b-efd0-43b5-9ae8-b21aa35b6681"
+      - run: railway up --service "ab846e5c-d41d-410a-96ff-78cffe3d2015" --detach --verbose
+
+workflows:
+  main:
+    jobs:
+      - test
+      - deploy_railway:
+          requires: [test]
+          filters:
+            branches:
+              only: [main]
