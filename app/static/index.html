@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PNP Reporting LLM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Material Symbols for optional run icon -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400" rel="stylesheet" />
+  <style>
+    .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: currentColor; border-radius: 9999px; width: 1rem; height: 1rem; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    pre code { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+  <div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl bg-indigo-600 dark:bg-indigo-500 grid place-items-center text-white font-bold">PnP</div>
+        <div>
+          <h1 class="text-xl font-semibold">PnP Reporting LLM</h1>
+          <p id="healthText" class="text-xs text-slate-500">checking health…</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="themeBtn" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Toggle theme</button>
+        <a href="/schema" target="_blank" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Schema</a>
+        <a href="/health" target="_blank" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Health JSON</a>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Left: Query Panel -->
+      <section class="space-y-4">
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <label for="q" class="block text-sm font-medium mb-2">Query Away!</label>
+          <textarea id="q" rows="3" placeholder="Which diagnosis was most common from June 2020 to January 2024?" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"></textarea>
+          <div class="flex items-center flex-wrap gap-3 mt-3">
+            <button id="runBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+              <span class="material-symbols-outlined hidden" id="runIcon">play_arrow</span>
+              Run
+            </button>
+            <button id="cancelBtn" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">Cancel</button>
+            <button id="clearBtn" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">Clear</button>
+            <span id="timing" class="text-xs text-slate-500"></span>
+          </div>
+        </div>
+
+        <!-- Quick Examples -->
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold">Examples</h2>
+            <button id="exToggle" class="text-xs px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Show/Hide</button>
+          </div>
+          <div id="examples" class="mt-3 space-y-2 hidden">
+            <button class="ex px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-left w-full">Which diagnosis was most common from June 2020 to January 2024?</button>
+            <button class="ex px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-left w-full">Average performance status by cancer stage in 2022.</button>
+            <button class="ex px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-left w-full">Top 5 counties with the highest number of cases in 2023.</button>
+            <button class="ex px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-left w-full">Trend of monthly cases for breast cancer from 2021 to 2024.</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Results Panel -->
+      <section class="space-y-4">
+        <!-- Answer Card -->
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-semibold">Answer</h2>
+            <div id="statusBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">Idle</div>
+          </div>
+          <div class="prose dark:prose-invert max-w-none">
+            <p id="answer" class="text-sm text-slate-700 dark:text-slate-200">Ask a question and hit <em>Run</em>.</p>
+            <ul id="warnings" class="mt-3 text-xs text-amber-700 dark:text-amber-300 list-disc list-inside hidden"></ul>
+          </div>
+        </div>
+
+        <!-- DSL & Plan -->
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold">Plan</h2>
+            <div class="flex items-center gap-2">
+              <button id="copyDsl" class="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Copy DSL</button>
+              <button id="toggleJson" class="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Toggle JSON</button>
+            </div>
+          </div>
+          <div class="mt-3">
+            <pre class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl overflow-auto"><code id="dsl">—</code></pre>
+          </div>
+          <div id="planWrap" class="mt-3 hidden">
+            <pre class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl overflow-auto"><code id="plan">{}</code></pre>
+          </div>
+        </div>
+
+        <!-- Rows Table -->
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold">Rows</h2>
+            <div class="flex items-center gap-2 text-xs">
+              <span id="rowMeta" class="text-slate-500"></span>
+              <button id="downloadJson" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Download JSON</button>
+            </div>
+          </div>
+          <div id="rows" class="mt-3 overflow-auto"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // ============ Minimal UI Controller ============
+    const qEl = document.getElementById('q');
+    const runBtn = document.getElementById('runBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const answerEl = document.getElementById('answer');
+    const warningsEl = document.getElementById('warnings');
+    const statusBadge = document.getElementById('statusBadge');
+    const dslEl = document.getElementById('dsl');
+    const planEl = document.getElementById('plan');
+    const planWrap = document.getElementById('planWrap');
+    const rowsEl = document.getElementById('rows');
+    const rowMeta = document.getElementById('rowMeta');
+    const copyDslBtn = document.getElementById('copyDsl');
+    const toggleJsonBtn = document.getElementById('toggleJson');
+    const downloadBtn = document.getElementById('downloadJson');
+    const timingEl = document.getElementById('timing');
+    const exToggle = document.getElementById('exToggle');
+    const examples = document.getElementById('examples');
+    const healthText = document.getElementById('healthText');
+    const themeBtn = document.getElementById('themeBtn');
+
+    let controller = null; // AbortController for cancel
+    const baseURL = ''; // same origin; change if reverse-proxying
+
+    // ---------- Helpers ----------
+    function escapeHTML(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+    function setStatus(text, tone='idle'){
+      statusBadge.textContent = text;
+      statusBadge.className = 'text-xs px-2.5 py-1 rounded-full ' + (
+        tone==='run' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200' :
+        tone==='stop' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200' :
+        tone==='ok' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200' :
+        tone==='err' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200' :
+        'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+      );
+    }
+    function setAnswerTextSafe(text){
+      // server-provided strings as textContent (XSS-safe)
+      answerEl.textContent = (text ?? '').toString();
+    }
+    function showWarnings(warnings){
+      if (warnings && warnings.length){
+        warningsEl.innerHTML = warnings.map(w => `<li>${escapeHTML(w)}</li>`).join('');
+        warningsEl.classList.remove('hidden');
+      } else {
+        warningsEl.classList.add('hidden');
+        warningsEl.innerHTML = '';
+      }
+    }
+    function renderTable(rows){
+      if (!rows || !rows.length){
+        rowsEl.innerHTML = '<div class="text-sm text-slate-500">No rows.</div>';
+        rowMeta.textContent = '';
+        return;
+      }
+      const cols = Array.from(new Set(rows.flatMap(r => Object.keys(r))));
+      const preview = rows.slice(0, 100);
+      let thead = '<thead><tr>' + cols.map(c=>`<th class="px-3 py-2 text-left text-xs font-medium text-slate-500">${escapeHTML(c)}</th>`).join('') + '</tr></thead>';
+      let tbody = '<tbody>' + preview.map(r=>{
+        return '<tr class="border-t border-slate-100 dark:border-slate-700">' +
+          cols.map(c=>`<td class="px-3 py-2 text-sm">${r[c] === null || r[c] === undefined ? '' : escapeHTML(r[c])}</td>`).join('') + '</tr>';
+      }).join('') + '</tbody>';
+      rowsEl.innerHTML = `<div class="overflow-x-auto"><table class="min-w-full">${thead}${tbody}</table></div>`;
+      rowMeta.textContent = `showing ${preview.length} / ${rows.length} rows`;
+    }
+    function copyToClipboard(text){
+      navigator.clipboard.writeText(text).then(()=>{
+        copyDslBtn.textContent = 'Copied!';
+        setTimeout(()=> copyDslBtn.textContent = 'Copy DSL', 1000);
+      });
+    }
+    function resetOutputs(){
+      setStatus('Idle');
+      dslEl.textContent = '—';
+      planEl.textContent = '{}';
+      rowsEl.innerHTML = '';
+      rowMeta.textContent = '';
+      timingEl.textContent = '';
+      setAnswerTextSafe('Ask a question and hit Run.');
+      showWarnings([]);
+    }
+
+    // ---------- Theme ----------
+    function applyTheme(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      localStorage.setItem('prefers-dark', dark ? '1' : '0');
+    }
+    themeBtn.addEventListener('click', () => {
+      applyTheme(!document.documentElement.classList.contains('dark'));
+    });
+    (function initTheme(){
+      const saved = localStorage.getItem('prefers-dark');
+      if (saved) applyTheme(saved === '1');
+      else applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    })();
+
+    // ---------- Health ping ----------
+    fetch(baseURL + '/health').then(r=>r.json()).then(j=>{
+      healthText.textContent = `rows: ${j.rows ?? '—'}, date_col: ${j.date_col ?? '—'}, model: ${j.model ?? '—'}`;
+    }).catch(()=>{
+      healthText.textContent = 'server not reachable';
+    });
+
+    // ---------- Examples ----------
+    exToggle.addEventListener('click', ()=> examples.classList.toggle('hidden'));
+    document.querySelectorAll('.ex').forEach(btn => btn.addEventListener('click', ()=>{
+      qEl.value = btn.textContent.trim();
+      localStorage.setItem('last-question', qEl.value);
+    }));
+
+    // ---------- Persist last question ----------
+    (function initLastQ(){
+      const last = localStorage.getItem('last-question');
+      if (last) qEl.value = last;
+    })();
+
+    // ---------- Actions ----------
+    copyDslBtn.addEventListener('click', ()=> copyToClipboard(dslEl.textContent || ''));
+    toggleJsonBtn.addEventListener('click', ()=> planWrap.classList.toggle('hidden'));
+    downloadBtn.addEventListener('click', ()=>{
+      const blob = new Blob([planEl.textContent || '{}'], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'plan.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ---------- Run / Cancel / Clear ----------
+    async function runQuery(){
+      const question = qEl.value.trim();
+      if (!question){
+        setStatus('Idle');
+        setAnswerTextSafe('Type a question first.');
+        return;
+      }
+      localStorage.setItem('last-question', question);
+
+      if (controller){ controller.abort(); }
+      controller = new AbortController();
+
+      // Running state (controlled HTML is okay here)
+      setStatus('Running…', 'run');
+      answerEl.innerHTML = '<div class="flex items-center gap-2"><span class="spinner"></span><span>Running your query…</span></div>';
+      showWarnings([]);
+      dslEl.textContent = '—';
+      planEl.textContent = '{}';
+      rowsEl.innerHTML = '';
+      rowMeta.textContent = '';
+      timingEl.textContent = '';
+
+      const t0 = performance.now();
+      try {
+        const resp = await fetch(baseURL + '/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+          signal: controller.signal
+        });
+        if (!resp.ok){
+          const err = await resp.json().catch(()=>({detail: 'Unknown error'}));
+          throw new Error(typeof err === 'string' ? err : (err.detail || JSON.stringify(err)));
+        }
+        const data = await resp.json();
+
+        dslEl.textContent = data.dsl || '—';
+        planEl.textContent = JSON.stringify({ plan: data.plan, meta: data.meta }, null, 2);
+        renderTable(data.rows || []);
+        setAnswerTextSafe(data.natural_answer || data.answer || '(no answer)');
+
+        const warnings = (data.meta && data.meta.warnings) ? data.meta.warnings : [];
+        showWarnings(warnings);
+
+        setStatus('Done', 'ok');
+        const t1 = performance.now();
+        timingEl.textContent = `${Math.round(t1 - t0)} ms`;
+      } catch (e){
+        if (e.name === 'AbortError'){
+          setStatus('Stopping…', 'stop');
+          answerEl.innerHTML = '<div class="flex items-center gap-2"><span class="spinner"></span><span>Stopping your query…</span></div>';
+          setTimeout(()=>{
+            setStatus('Cancelled');
+            setAnswerTextSafe('Query was cancelled.');
+          }, 350);
+        } else {
+          setStatus('Error', 'err');
+          setAnswerTextSafe(e.message || String(e));
+          dslEl.textContent = '—';
+        }
+      } finally {
+        controller = null;
+      }
+    }
+
+    function cancelQuery(){
+      if (controller) controller.abort();
+    }
+
+    function clearAll(){
+      if (controller) controller.abort();
+      qEl.value = '';
+      localStorage.removeItem('last-question');
+      resetOutputs();
+    }
+
+    // Wire buttons & keys
+    runBtn.addEventListener('click', runQuery);
+    cancelBtn.addEventListener('click', cancelQuery);
+    clearBtn.addEventListener('click', clearAll);
+    qEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runQuery(); });
+    window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') cancelQuery(); });
+  </script>
+</body>
+</html>
