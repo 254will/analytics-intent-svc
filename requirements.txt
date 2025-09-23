@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.0
+# Other dependencies:
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+gunicorn
+pydantic==2.7.4
+pandas==2.2.2
+transformers==4.43.3
+rapidfuzz==3.9.6
