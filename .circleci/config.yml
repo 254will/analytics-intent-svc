@@ -25,7 +25,9 @@ jobs:
     docker:
       - image: cimg/node:22.6
     environment:
-      CI: "true"   
+      CI: "true" 
+      RAILWAY_PROJECT_ID: "31398f7b-efd0-43b5-9ae8-b21aa35b6681"
+      RAILWAY_SERVICE: "ab846e5c-d41d-410a-96ff-78cffe3d2015"
     steps:
       - checkout
 
@@ -37,7 +39,6 @@ jobs:
       - run:
           name: Link to Railway project
           command: |
-            # Auth uses env: RAILWAY_TOKEN / RAILWAY_API_TOKEN
             npx -y @railway/cli@latest link --project "$RAILWAY_PROJECT_ID"
 
       - run:
