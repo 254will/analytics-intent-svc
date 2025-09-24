@@ -7,7 +7,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install deps (if any)
+          name: Install deps (optional)
           command: |
             if [ -f requirements.txt ]; then
               pip install -r requirements.txt || true
@@ -24,23 +24,35 @@ jobs:
   deploy_railway:
     docker:
       - image: cimg/node:22.6
+    environment:
+      # Ensure CLI sees token in non-interactive CI
+      CI: "true"
     steps:
       - checkout
 
+      # Install Railway CLI and ensure PATH includes npm global bin
       - run:
-          name: Railway login
+          name: Install Railway CLI
           command: |
-            npm install -g npm@11.6.0 login --token "$RAILWAY_TOKEN"
+            npm i -g @railway/cli
+            echo 'export PATH="$(npm bin -g):$PATH"' >> "$BASH_ENV"
+            source "$BASH_ENV"
+            railway --version
+
+      # Auth is via env var, so no 'login' step.
+      # Link + deploy
+      - run:
+          name: Link to project
+          command: |
+            source "$BASH_ENV"
+            railway link --project "$RAILWAY_PROJECT_ID"
 
       - run:
-          name: Link to Railway project
+          name: Deploy to Railway (Dockerfile build)
           command: |
-            npm install -g npm@11.6.0 link --project "$RAILWAY_PROJECT_ID"
-
-      - run:
-          name: Trigger Railway deploy (Dockerfile build)
-          command: |
-            npm install -g npm@11.6.0 up --service "$RAILWAY_SERVICE" --detach --verbose
+            source "$BASH_ENV"
+            # Tokens are provided via env: RAILWAY_TOKEN / RAILWAY_API_TOKEN
+            railway up --service "$RAILWAY_SERVICE" --detach --verbose
 
 workflows:
   main:
