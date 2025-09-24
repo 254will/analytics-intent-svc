@@ -14,10 +14,9 @@ jobs:
       - image: cimg/node:22.6
     steps:
       - checkout
-      - run: npm i -g @railway/cli
-      - run: railway --version
+      - run: node -v && npm -v
       - run: >
-          railway up
+          npx -y @railway/cli@latest up
           --service "$RAILWAY_SERVICE"
           --environment "$RAILWAY_ENV_ID"
           --detach
