@@ -30,17 +30,17 @@ jobs:
       - run:
           name: Railway login
           command: |
-            npx -y @railway/cli@latest login --token "$RAILWAY_TOKEN"
+            npm install -g npm@11.6.0 login --token "$RAILWAY_TOKEN"
 
       - run:
           name: Link to Railway project
           command: |
-            npx -y @railway/cli@latest link --project "$RAILWAY_PROJECT_ID"
+            npm install -g npm@11.6.0 link --project "$RAILWAY_PROJECT_ID"
 
       - run:
           name: Trigger Railway deploy (Dockerfile build)
           command: |
-            npx -y @railway/cli@latest up --service "$RAILWAY_SERVICE" --detach --verbose
+            npm install -g npm@11.6.0 up --service "$RAILWAY_SERVICE" --detach --verbose
 
 workflows:
   main:
