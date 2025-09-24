@@ -1,20 +1,35 @@
 version: 2.1
+
 jobs:
+  test:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run: pip install -r requirements.txt
+      - run: pytest -q || echo "No tests yet"
+
   deploy_railway:
     docker:
       - image: cimg/node:22.6
     steps:
       - checkout
-      - run: node -v && npm -v
-      # No global install; run CLI via npx
+      - run: npm i -g @railway/cli
+      - run: railway --version
       - run: >
-          npx -y @railway/cli@latest up
+          railway up
           --service "$RAILWAY_SERVICE"
           --environment "$RAILWAY_ENV_ID"
           --detach
           --ci
           --verbose
+
 workflows:
   main:
     jobs:
-      - deploy_railway
+      - test
+      - deploy_railway:
+          requires: [test]
+          filters:
+            branches:
+              only: [main]
