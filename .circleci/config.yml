@@ -6,6 +6,7 @@ jobs:
     steps:
       - checkout
       - run: node -v && npm -v
+      # No global install; run CLI via npx
       - run: >
           npx -y @railway/cli@latest up
           --service "$RAILWAY_SERVICE"
@@ -13,13 +14,7 @@ jobs:
           --detach
           --ci
           --verbose
-
 workflows:
   main:
     jobs:
-      - test
-      - deploy_railway:
-          requires: [test]
-          filters:
-            branches:
-              only: [main] 
+      - deploy_railway
