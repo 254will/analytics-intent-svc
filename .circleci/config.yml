@@ -27,7 +27,6 @@ jobs:
     steps:
       - checkout
 
-      # Use npx so we don't fight PATH issues
       - run:
           name: Railway login
           command: |
