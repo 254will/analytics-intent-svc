@@ -26,15 +26,17 @@ jobs:
       - image: cimg/node:22.6
     environment:
       CI: "true" 
-      RAILWAY_PROJECT_ID: "31398f7b-efd0-43b5-9ae8-b21aa35b6681"
-      RAILWAY_SERVICE: "ab846e5c-d41d-410a-96ff-78cffe3d2015"
     steps:
       - checkout
-
       - run:
           name: Check Railway CLI via npx
           command: |
             npx -y @railway/cli@latest --version
+
+      - run:
+          name: Railway login
+          command: |
+           npx -y @railway/cli@latest login --token "$RAILWAY_TOKEN"
 
       - run:
           name: Link to Railway project
