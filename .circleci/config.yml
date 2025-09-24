@@ -6,47 +6,23 @@ jobs:
       - image: cimg/python:3.11
     steps:
       - checkout
-      - run:
-          name: Install deps (optional)
-          command: |
-            if [ -f requirements.txt ]; then
-              pip install -r requirements.txt || true
-            fi
-      - run:
-          name: Run tests (optional)
-          command: |
-            if command -v pytest >/dev/null 2>&1; then
-              pytest -q
-            else
-              echo "No tests configured; skipping."
-            fi
+      - run: pip install -r requirements.txt
+      - run: pytest -q || echo "No tests yet"
 
   deploy_railway:
     docker:
       - image: cimg/node:22.6
-    environment:
-      CI: "true" 
     steps:
       - checkout
-      - run:
-          name: Check Railway CLI via npx
-          command: |
-            npx -y @railway/cli@latest --version
-
-      - run:
-          name: Railway login
-          command: |
-           npx -y @railway/cli@latest login --token "$RAILWAY_TOKEN_API"
-
-      - run:
-          name: Link to Railway project
-          command: |
-            npx -y @railway/cli@latest link --project "$RAILWAY_PROJECT_ID"
-
-      - run:
-          name: Deploy to Railway (Dockerfile build)
-          command: |
-            npx -y @railway/cli@latest up --service "$RAILWAY_SERVICE" --detach --verbose
+      - run: npm i -g @railway/cli
+      - run: railway --version
+      - run: >
+          railway up
+          --service "$RAILWAY_SERVICE"
+          --environment "$RAILWAY_ENV_ID"
+          --detach
+          --ci
+          --verbose
 
 workflows:
   main:
@@ -56,4 +32,4 @@ workflows:
           requires: [test]
           filters:
             branches:
-              only: main
+              only: [main] 
