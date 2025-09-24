@@ -36,7 +36,7 @@ jobs:
       - run:
           name: Railway login
           command: |
-           npx -y @railway/cli@latest login --token "$RAILWAY_TOKEN"
+           npx -y @railway/cli@latest login --token "$RAILWAY_TOKEN_API"
 
       - run:
           name: Link to Railway project
