@@ -25,34 +25,25 @@ jobs:
     docker:
       - image: cimg/node:22.6
     environment:
-      # Ensure CLI sees token in non-interactive CI
-      CI: "true"
+      CI: "true"   
     steps:
       - checkout
 
-      # Install Railway CLI and ensure PATH includes npm global bin
       - run:
-          name: Install Railway CLI
+          name: Check Railway CLI via npx
           command: |
-            npm i -g @railway/cli
-            echo 'export PATH="$(npm bin -g):$PATH"' >> "$BASH_ENV"
-            source "$BASH_ENV"
-            railway --version
+            npx -y @railway/cli@latest --version
 
-      # Auth is via env var, so no 'login' step.
-      # Link + deploy
       - run:
-          name: Link to project
+          name: Link to Railway project
           command: |
-            source "$BASH_ENV"
-            railway link --project "$RAILWAY_PROJECT_ID"
+            # Auth uses env: RAILWAY_TOKEN / RAILWAY_API_TOKEN
+            npx -y @railway/cli@latest link --project "$RAILWAY_PROJECT_ID"
 
       - run:
           name: Deploy to Railway (Dockerfile build)
           command: |
-            source "$BASH_ENV"
-            # Tokens are provided via env: RAILWAY_TOKEN / RAILWAY_API_TOKEN
-            railway up --service "$RAILWAY_SERVICE" --detach --verbose
+            npx -y @railway/cli@latest up --service "$RAILWAY_SERVICE" --detach --verbose
 
 workflows:
   main:
