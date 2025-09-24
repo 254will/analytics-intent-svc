@@ -6,7 +6,13 @@ jobs:
     steps:
       - checkout
       - run: node -v && npm -v
-      # No global install; run CLI via npx
+      - run: |
+          echo "CI=$CI"
+          test -n "$RAILWAY_TOKEN_API" || (echo "RAILWAY_TOKEN_API is EMPTY" && exit 1)
+          export RAILWAY_TOKEN_API="$(printf %s "$RAILWAY_TOKEN_API" | tr -d '\r\n')"
+          echo "RAILWAY_TOKEN_API length: ${#RAILWAY_TOKEN_API}"
+          test -n "$RAILWAY_SERVICE" || (echo "RAILWAY_SERVICE missing" && exit 1)
+          test -n "$RAILWAY_ENV_ID"  || (echo "RAILWAY_ENV_ID missing" && exit 1)
       - run: >
           npx -y @railway/cli@latest up
           --service "$RAILWAY_SERVICE"
