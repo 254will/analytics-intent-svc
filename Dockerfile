@@ -2,7 +2,6 @@
 
 FROM python:3.11-slim
 
-# Minimal system deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates jq tini \
  && rm -rf /var/lib/apt/lists/*
@@ -12,23 +11,16 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
 
 WORKDIR /srv
 
-# ---------- deps (with cache mounts that include id=...) ----------
 COPY requirements.txt /srv/requirements.txt
-RUN --mount=type=cache,id=pip-cache,target=/root/.cache/pip \
-    --mount=type=cache,id=pip-wheels,target=/wheels \
-    pip wheel --no-cache-dir --prefer-binary --wheel-dir=/wheels -r /srv/requirements.txt && \
-    pip install --no-cache-dir --no-index --find-links=/wheels -r /srv/requirements.txt
+RUN pip install --no-cache-dir --prefer-binary -r /srv/requirements.txt
 
-# ---------- app code ----------
 COPY app/ /srv/app/
 
-# ---------- model/artifacts fetch (secret optional; falls back to public) ----------
 ARG GH_OWNER=254will
 ARG GH_REPO=analytics-intent-svc
 ARG GH_TAG=v1.0.0
 ARG MODEL_TAR=model-950mb.tar.gz
 
-# If you provide a secret at build time: --secret id=gh_token,src=/path/to/token
 RUN --mount=type=secret,id=gh_token,target=/run/secrets/gh_token \
     set -euo pipefail; \
     mkdir -p /srv/artifacts; \
@@ -60,7 +52,6 @@ RUN --mount=type=secret,id=gh_token,target=/run/secrets/gh_token \
       echo "Found pre-baked artifacts → skipping download"; \
     fi
 
-# ---------- runtime env ----------
 ENV PYTHONPATH=/srv \
     PORT=8080 \
     MODEL_PATH=/srv/artifacts/planner_model \
