@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <title>PNP Reporting LLM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Material Symbols for optional run icon -->
@@ -11,46 +16,83 @@
     .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: currentColor; border-radius: 9999px; width: 1rem; height: 1rem; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     pre code { white-space: pre-wrap; word-break: break-word; }
+    /* Reduce motion for users who prefer it */
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation: none; }
+    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-  <div class="max-w-7xl mx-auto px-4 py-6">
+<body class="h-full bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+  <div class="min-h-full max-w-7xl mx-auto px-4 pb-24 pt-4 sm:pt-6"> <!-- bottom padding for sticky bar -->
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <header class="flex items-center justify-between mb-4 sm:mb-6">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-2xl bg-indigo-600 dark:bg-indigo-500 grid place-items-center text-white font-bold">PnP</div>
-        <div>
-          <h1 class="text-xl font-semibold">PnP Reporting LLM</h1>
-          <p id="healthText" class="text-xs text-slate-500">checking health…</p>
-        </div>
+        <h1 class="text-lg sm:text-xl font-semibold">PnP Reporting LLM</h1>
       </div>
-      <div class="flex items-center gap-3">
+
+      <!-- Desktop actions -->
+      <div class="hidden sm:flex items-center gap-3">
         <button id="themeBtn" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Toggle theme</button>
         <a href="/schema" target="_blank" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Schema</a>
         <a href="/health" target="_blank" class="text-sm px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800">Health JSON</a>
+        <span id="healthText" class="text-xs text-slate-500 ml-1"></span>
       </div>
-    </div>
+
+      <!-- Mobile menu -->
+      <div class="sm:hidden">
+        <button id="menuBtn" aria-label="Open menu"
+          class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800">
+          ☰
+        </button>
+        <div id="menuSheet"
+             class="hidden absolute right-4 top-14 z-50 w-64 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg p-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold">Menu</span>
+            <button id="themeBtnMobile" class="text-xs px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Toggle theme</button>
+          </div>
+          <div class="flex flex-col gap-2">
+            <a href="/schema" target="_blank" class="text-sm px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700">Schema</a>
+            <a href="/health" target="_blank" class="text-sm px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700">Health JSON</a>
+            <div class="text-xs text-slate-500 mt-1">Status: <span id="healthTextMobile">—</span></div>
+          </div>
+        </div>
+      </div>
+    </header>
 
     <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <main class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Left: Query Panel -->
-      <section class="space-y-4">
-        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
-          <label for="q" class="block text-sm font-medium mb-2">Query Away!</label>
-          <textarea id="q" rows="3" placeholder="Which diagnosis was most common from June 2020 to January 2024?" class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"></textarea>
-          <div class="flex items-center flex-wrap gap-3 mt-3">
-            <button id="runBtn" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+      <section class="space-y-4" aria-labelledby="query-title">
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-800 shadow">
+          <label id="query-title" for="q" class="block text-sm font-medium mb-2">Query Away!</label>
+          <textarea id="q" rows="3"
+            placeholder="Which diagnosis was most common from June 2020 to January 2024?"
+            class="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 sm:p-4 text-base leading-relaxed resize-none"
+            spellcheck="true" autocapitalize="sentences" inputmode="text"></textarea>
+          <div class="mt-1 text-xs text-slate-500"><span id="charCount">0</span> chars</div>
+
+          <!-- Actions: stack on mobile -->
+          <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 mt-3">
+            <button id="runBtn"
+              class="min-h-12 sm:min-h-0 w-full sm:w-auto justify-center px-4 py-3 sm:py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
               <span class="material-symbols-outlined hidden" id="runIcon">play_arrow</span>
               Run
             </button>
-            <button id="cancelBtn" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">Cancel</button>
-            <button id="clearBtn" class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">Clear</button>
-            <span id="timing" class="text-xs text-slate-500"></span>
+            <button id="cancelBtn"
+              class="min-h-12 sm:min-h-0 w-full sm:w-auto justify-center px-4 py-3 sm:py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
+              Cancel
+            </button>
+            <button id="clearBtn"
+              class="min-h-12 sm:min-h-0 w-full sm:w-auto justify-center px-4 py-3 sm:py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
+              Clear
+            </button>
+            <span id="timing" class="text-xs text-slate-500 self-center sm:ml-2"></span>
           </div>
         </div>
 
         <!-- Quick Examples -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-800 shadow">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-semibold">Examples</h2>
             <button id="exToggle" class="text-xs px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Show/Hide</button>
@@ -65,21 +107,25 @@
       </section>
 
       <!-- Right: Results Panel -->
-      <section class="space-y-4">
+      <section class="space-y-4" aria-labelledby="answer-title">
         <!-- Answer Card -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-800 shadow">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-semibold">Answer</h2>
-            <div id="statusBadge" class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">Idle</div>
+            <h2 id="answer-title" class="text-sm font-semibold">Answer</h2>
+            <div id="statusBadge"
+                 class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                 aria-live="polite">Idle</div>
           </div>
           <div class="prose dark:prose-invert max-w-none">
-            <p id="answer" class="text-sm text-slate-700 dark:text-slate-200">Ask a question and hit <em>Run</em>.</p>
+            <p id="answer" class="text-sm text-slate-700 dark:text-slate-200" aria-live="polite">
+              Ask a question and hit <em>Run</em>.
+            </p>
             <ul id="warnings" class="mt-3 text-xs text-amber-700 dark:text-amber-300 list-disc list-inside hidden"></ul>
           </div>
         </div>
 
         <!-- DSL & Plan -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-800 shadow">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-semibold">Plan</h2>
             <div class="flex items-center gap-2">
@@ -96,7 +142,7 @@
         </div>
 
         <!-- Rows Table -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow">
+        <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-800 shadow">
           <div class="flex items-center justify-between">
             <h2 class="text-sm font-semibold">Rows</h2>
             <div class="flex items-center gap-2 text-xs">
@@ -104,18 +150,45 @@
               <button id="downloadJson" class="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700">Download JSON</button>
             </div>
           </div>
-          <div id="rows" class="mt-3 overflow-auto"></div>
+          <div id="rows" class="mt-3 overflow-auto -mx-3 sm:mx-0 px-3 sm:px-0"></div>
         </div>
       </section>
+    </main>
+  </div>
+
+  <!-- Sticky Bottom Action Bar (mobile only) -->
+  <div class="sm:hidden fixed inset-x-0 bottom-0 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-t border-slate-200 dark:border-slate-700"
+       style="padding-bottom: calc(env(safe-area-inset-bottom) + 8px);">
+    <div class="max-w-7xl mx-auto px-3 pt-2">
+      <div class="grid grid-cols-2 gap-2">
+        <button id="runBtnBottom"
+          class="min-h-12 w-full justify-center px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+          <span class="material-symbols-outlined hidden">play_arrow</span>
+          Run
+        </button>
+        <button id="cancelBtnBottom"
+          class="min-h-12 w-full justify-center px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
+          Cancel
+        </button>
+      </div>
+      <div class="flex justify-center mt-2">
+        <button id="clearBtnBottom" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700">Clear</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // ============ Minimal UI Controller ============
+    // ============ Minimal UI Controller (with mobile polish) ============
     const qEl = document.getElementById('q');
     const runBtn = document.getElementById('runBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const clearBtn = document.getElementById('clearBtn');
+
+    // Mobile bottom bar buttons mirror the main ones
+    const runBtnBottom = document.getElementById('runBtnBottom');
+    const cancelBtnBottom = document.getElementById('cancelBtnBottom');
+    const clearBtnBottom = document.getElementById('clearBtnBottom');
+
     const answerEl = document.getElementById('answer');
     const warningsEl = document.getElementById('warnings');
     const statusBadge = document.getElementById('statusBadge');
@@ -130,8 +203,13 @@
     const timingEl = document.getElementById('timing');
     const exToggle = document.getElementById('exToggle');
     const examples = document.getElementById('examples');
-    const healthText = document.getElementById('healthText');
     const themeBtn = document.getElementById('themeBtn');
+    const themeBtnMobile = document.getElementById('themeBtnMobile');
+    const menuBtn = document.getElementById('menuBtn');
+    const menuSheet = document.getElementById('menuSheet');
+    const healthText = document.getElementById('healthText');
+    const healthTextMobile = document.getElementById('healthTextMobile');
+    const charCount = document.getElementById('charCount');
 
     let controller = null; // AbortController for cancel
     const baseURL = ''; // same origin; change if reverse-proxying
@@ -154,7 +232,6 @@
       );
     }
     function setAnswerTextSafe(text){
-      // server-provided strings as textContent (XSS-safe)
       answerEl.textContent = (text ?? '').toString();
     }
     function showWarnings(warnings){
@@ -198,26 +275,37 @@
       setAnswerTextSafe('Ask a question and hit Run.');
       showWarnings([]);
     }
+    function autosizeTextarea(el){
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight) + 'px';
+    }
 
     // ---------- Theme ----------
     function applyTheme(dark) {
       document.documentElement.classList.toggle('dark', dark);
       localStorage.setItem('prefers-dark', dark ? '1' : '0');
     }
-    themeBtn.addEventListener('click', () => {
-      applyTheme(!document.documentElement.classList.contains('dark'));
-    });
-    (function initTheme(){
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    function initTheme(){
       const saved = localStorage.getItem('prefers-dark');
       if (saved) applyTheme(saved === '1');
       else applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
-    })();
+    }
+    function toggleTheme(){
+      applyTheme(!isDark());
+    }
 
     // ---------- Health ping ----------
+    function setHealthText(msg){
+      if (healthText) healthText.textContent = msg;
+      if (healthTextMobile) healthTextMobile.textContent = msg;
+    }
+
     fetch(baseURL + '/health').then(r=>r.json()).then(j=>{
-      healthText.textContent = `rows: ${j.rows ?? '—'}, date_col: ${j.date_col ?? '—'}, model: ${j.model ?? '—'}`;
+      setHealthText(`rows: ${j.rows ?? '—'}, date_col: ${j.date_col ?? '—'}, model: ${j.model ?? '—'}`);
     }).catch(()=>{
-      healthText.textContent = 'server not reachable';
+      setHealthText('server not reachable');
     });
 
     // ---------- Examples ----------
@@ -225,12 +313,18 @@
     document.querySelectorAll('.ex').forEach(btn => btn.addEventListener('click', ()=>{
       qEl.value = btn.textContent.trim();
       localStorage.setItem('last-question', qEl.value);
+      autosizeTextarea(qEl);
+      charCount.textContent = qEl.value.length;
     }));
 
     // ---------- Persist last question ----------
     (function initLastQ(){
       const last = localStorage.getItem('last-question');
-      if (last) qEl.value = last;
+      if (last) {
+        qEl.value = last;
+        autosizeTextarea(qEl);
+        charCount.textContent = last.length;
+      }
     })();
 
     // ---------- Actions ----------
@@ -257,7 +351,6 @@
       if (controller){ controller.abort(); }
       controller = new AbortController();
 
-      // Running state (controlled HTML is okay here)
       setStatus('Running…', 'run');
       answerEl.innerHTML = '<div class="flex items-center gap-2"><span class="spinner"></span><span>Running your query…</span></div>';
       showWarnings([]);
@@ -310,23 +403,40 @@
       }
     }
 
-    function cancelQuery(){
-      if (controller) controller.abort();
-    }
+    function cancelQuery(){ if (controller) controller.abort(); }
 
     function clearAll(){
       if (controller) controller.abort();
       qEl.value = '';
+      autosizeTextarea(qEl);
+      charCount.textContent = 0;
       localStorage.removeItem('last-question');
       resetOutputs();
     }
 
     // Wire buttons & keys
-    runBtn.addEventListener('click', runQuery);
-    cancelBtn.addEventListener('click', cancelQuery);
-    clearBtn.addEventListener('click', clearAll);
+    [runBtn, runBtnBottom].forEach(btn => btn && btn.addEventListener('click', runQuery));
+    [cancelBtn, cancelBtnBottom].forEach(btn => btn && btn.addEventListener('click', cancelQuery));
+    [clearBtn, clearBtnBottom].forEach(btn => btn && btn.addEventListener('click', clearAll));
+
+    qEl.addEventListener('input', ()=>{ autosizeTextarea(qEl); charCount.textContent = qEl.value.length; });
     qEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runQuery(); });
     window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') cancelQuery(); });
+
+    // Theme + menu init
+    initTheme();
+    themeBtn?.addEventListener('click', toggleTheme);
+    themeBtnMobile?.addEventListener('click', toggleTheme);
+    menuBtn?.addEventListener('click', ()=> menuSheet.classList.toggle('hidden'));
+    document.addEventListener('click', (e)=>{
+      if (!menuSheet || !menuBtn) return;
+      if (!menuSheet.contains(e.target) && e.target !== menuBtn) {
+        menuSheet.classList.add('hidden');
+      }
+    });
+
+    // Initial autosize
+    autosizeTextarea(qEl);
   </script>
 </body>
 </html>
